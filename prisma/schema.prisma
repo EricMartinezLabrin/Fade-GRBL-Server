@@ -1,0 +1,162 @@
+generator client {
+ provider = "prisma-client-js"
+}
+datasource db {
+ provider = "postgresql"
+}
+model User {
+ id String @id @default(uuid()) @db.Uuid
+ email String @unique
+ passwordHash String
+ encryptedLibraryKey String
+ displayName String
+ bio String @default("")
+ emailVerified Boolean @default(false)
+ role String @default("user")
+ suspendedAt DateTime?
+ quotaBytes Int @default(200000000)
+ usedBytes Int @default(0)
+ reservedBytes Int @default(0)
+ createdAt DateTime @default(now())
+}
+model Session {
+ id String @id @default(uuid()) @db.Uuid
+ userId String @db.Uuid
+ accessHash String @unique
+ refreshHash String @unique
+ accessExpiresAt DateTime
+ refreshExpiresAt DateTime
+ revokedAt DateTime?
+ createdAt DateTime @default(now())
+ @@index([userId])
+}
+model RetiredRefresh {
+ hash String @id
+ sessionId String @db.Uuid
+}
+model EmailToken {
+ id String @id @default(uuid()) @db.Uuid
+ userId String @db.Uuid
+ hash String @unique
+ purpose String
+ expiresAt DateTime
+ consumedAt DateTime?
+ createdAt DateTime @default(now())
+ @@index([userId, purpose])
+}
+model Library {
+ id String @id @default(uuid()) @db.Uuid
+ ownerId String @db.Uuid
+ clientEntryId String
+ title String
+ tags String[]
+ version Int @default(1)
+ sizeBytes Int
+ objectKey String
+ objectVersion String
+ createdAt DateTime @default(now())
+ updatedAt DateTime @updatedAt
+ @@unique([ownerId, clientEntryId])
+ @@index([ownerId, createdAt, id])
+}
+model Upload {
+ id String @id @default(uuid()) @db.Uuid
+ ownerId String @db.Uuid
+ operationKey String @unique
+ clientEntryId String
+ libraryId String?
+ expectedVersion Int
+ sizeBytes Int
+ sha256 String
+ stagingKey String @unique
+ state String @default("reserved")
+ expiresAt DateTime
+ completedResult Json?
+ createdAt DateTime @default(now())
+ @@index([state, expiresAt])
+ @@index([ownerId])
+}
+model Design {
+ id String @id @default(uuid()) @db.Uuid
+ ownerId String @db.Uuid
+ operationKey String @unique
+ title String
+ description String
+ category String
+ categoryKey String
+ tags String[]
+ searchText String
+ licenseVersion String
+ sha256 String
+ svgKey String
+ svgVersion String
+ thumbnailKey String
+ thumbnailVersion String
+ thumbnail String
+ version Int @default(1)
+ withdrawnAt DateTime?
+ blockedAt DateTime?
+ createdAt DateTime @default(now())
+ updatedAt DateTime @updatedAt
+ @@unique([ownerId, sha256])
+ @@index([createdAt, id])
+}
+model Acquisition {
+ id String @id @default(uuid()) @db.Uuid
+ ownerId String @db.Uuid
+ designId String @db.Uuid
+ title String
+ licenseVersion String
+ licenseText String
+ payload String
+ signature String
+ createdAt DateTime @default(now())
+ @@unique([ownerId, designId])
+ @@index([ownerId, createdAt, id])
+}
+model Report {
+ id String @id @default(uuid()) @db.Uuid
+ reporterId String @db.Uuid
+ designId String @db.Uuid
+ operationKey String @unique
+ reason String
+ resolution String?
+ resolvedAt DateTime?
+ createdAt DateTime @default(now())
+}
+model IdempotencyRecord {
+ scope String @id
+ requestHash String
+ state String
+ leaseUntil DateTime
+ expiresAt DateTime
+ encryptedResponse String?
+ createdAt DateTime @default(now())
+}
+model RateLimit {
+ key String @id
+ count Int
+ expiresAt DateTime
+}
+model Task {
+ id String @id @default(uuid()) @db.Uuid
+ kind String
+ encryptedPayload String
+ attempts Int @default(0)
+ availableAt DateTime @default(now())
+ lockedUntil DateTime?
+ lockOwner String?
+ completedAt DateTime?
+ lastError String?
+ createdAt DateTime @default(now())
+ @@index([completedAt, availableAt, lockedUntil])
+}
+model AuditEvent {
+ id String @id @default(uuid()) @db.Uuid
+ actorId String
+ action String
+ targetId String
+ reason String
+ requestId String
+ createdAt DateTime @default(now())
+}
